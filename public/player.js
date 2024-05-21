@@ -59,7 +59,6 @@ function checkLiked(trackId) {
         headers: { 'Authorization': 'Bearer ' + currentToken.access_token },
     }).then(response => {
         response.json().then(data => {
-            console.log(data)
             if (data[0]) {
                 likeButton.classList.add("active");
                 likeButtonIcon.src = "icons/like-button-active.png";

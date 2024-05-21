@@ -1,195 +1,225 @@
-// Configuration and endpoint constants
-const clientId = 'f82ac08f17c34c40a267ea3b4f772264'; // your clientId
-const redirectUrl = 'http://localhost:5500'; // your redirect URL - must be localhost URL and/or HTTPS
-const authorizationEndpoint = "https://accounts.spotify.com/authorize";
-const tokenEndpoint = "https://accounts.spotify.com/api/token";
-const scope = 'user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-read user-library-modify';
+const backendBaseUrl = 'http://192.168.1.177:8888';
 
-// Data structure that manages the current active token, caching it in localStorage
-const currentToken = {
-  get access_token() { return localStorage.getItem('access_token') || null; },
-  get refresh_token() { return localStorage.getItem('refresh_token') || null; },
-  get expires_in() { return localStorage.getItem('expires_in') || null },
-  get expires() { return localStorage.getItem('expires') || null },
-
-  save: function (response) {
-    const { access_token, refresh_token, expires_in } = response;
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
-    localStorage.setItem('expires_in', expires_in);
-
-    const now = new Date();
-    const expiry = new Date(now.getTime() + (expires_in * 1000));
-    localStorage.setItem('expires', expiry);
-    updateOAuthInfo();
-    scheduleTokenRefresh(); // Schedule the next token refresh
-  },
-
-  clear: function () {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('expires_in');
-    localStorage.removeItem('expires');
-  }
+let currentToken = {
+  access_token: null,
+  refresh_token: null,
+  expires_in: null,
+  expires: null
 };
 
-// Utility function to handle PKCE code verifier/challenge creation
-async function createPKCEChallenge() {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const randomValues = crypto.getRandomValues(new Uint8Array(64));
-  const codeVerifier = Array.from(randomValues).map(x => possible[x % possible.length]).join('');
+// Parse token from URL fragment
+function parseTokenFromUrl() {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
 
-  const data = new TextEncoder().encode(codeVerifier);
-  const hashed = await crypto.subtle.digest('SHA-256', data);
-
-  const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hashed)))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  localStorage.setItem('code_verifier', codeVerifier);
-  return codeChallenge;
-}
-
-// Redirect user to Spotify's authorization page
-async function redirectToSpotifyAuthorize() {
-  const codeChallenge = await createPKCEChallenge();
-
-  const authUrl = new URL(authorizationEndpoint);
-  const params = {
-    response_type: 'code',
-    client_id: clientId,
-    scope: scope,
-    code_challenge_method: 'S256',
-    code_challenge: codeChallenge,
-    redirect_uri: redirectUrl,
+  return {
+    access_token: params.get('access_token'),
+    refresh_token: params.get('refresh_token'),
+    expires_in: params.get('expires_in')
   };
-
-  authUrl.search = new URLSearchParams(params).toString();
-  window.location.href = authUrl.toString(); // Redirect the user to the authorization server for login
 }
 
-// Exchange authorization code for access and refresh tokens
-async function getToken(code) {
-  const codeVerifier = localStorage.getItem('code_verifier');
+function saveTokenToLocalStorage(token) {
+  localStorage.setItem('access_token', token.access_token);
+  localStorage.setItem('refresh_token', token.refresh_token);
+  localStorage.setItem('expires_in', token.expires_in);
+  localStorage.setItem('expires', token.expires);
+}
 
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      client_id: clientId,
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: redirectUrl,
-      code_verifier: codeVerifier,
-    }),
-  });
+function loadTokenFromLocalStorage() {
+  const access_token = localStorage.getItem('access_token');
+  const refresh_token = localStorage.getItem('refresh_token');
+  const expires_in = localStorage.getItem('expires_in');
+  const expires = localStorage.getItem('expires');
 
-  return await response.json();
+  if (access_token && refresh_token && expires_in && expires) {
+    return {
+      access_token,
+      refresh_token,
+      expires_in: Number(expires_in),
+      expires: new Date(expires)
+    };
+  }
+  return null;
 }
 
 // Refresh access token using the refresh token
 async function refreshToken() {
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      client_id: clientId,
-      grant_type: 'refresh_token',
-      refresh_token: currentToken.refresh_token
-    }),
-  });
+  if (!currentToken.refresh_token) {
+    console.error('No refresh token available');
+    return;
+  }
 
-  return await response.json();
+  const response = await fetch(`${backendBaseUrl}/refresh_token?refresh_token=${currentToken.refresh_token}`);
+  const data = await response.json();
+  if (response.ok) {
+    console.log('Token refreshed:', data);
+    return data;
+  } else {
+    console.error('Failed to refresh token:', data);
+    return null;
+  }
 }
 
-// Schedule the token refresh
 function scheduleTokenRefresh() {
-  const expiresIn = currentToken.expires_in;
+  if (!currentToken.expires_in || !currentToken.expires) {
+    console.error('Cannot schedule token refresh due to missing token information');
+    return;
+  }
+
   const now = new Date().getTime();
   const expiryTime = new Date(currentToken.expires).getTime();
   const delay = expiryTime - now - 60000; // Refresh the token 1 minute before it expires
 
-  setTimeout(async () => {
-    try {
-      const response = await refreshToken();
-      currentToken.save(response);
-      console.log('Token refreshed automatically.');
-    } catch (error) {
-      console.error('Error refreshing token automatically:', error);
-    }
-  }, delay);
+  if (delay > 0) {
+    setTimeout(async () => {
+      try {
+        const response = await refreshToken();
+        if (response) {
+          saveToken(response);
+          console.log('Token refreshed automatically.');
+        }
+      } catch (error) {
+        console.error('Error refreshing token automatically:', error);
+      }
+    }, delay);
+  } else {
+    console.warn('Token is already expired or will expire soon, refreshing now');
+    refreshTokenClick();
+  }
+}
+
+// Save token to the current state
+function saveToken(token) {
+  if (!token.access_token || !token.refresh_token || !token.expires_in) {
+    console.error('Missing token information:', token);
+    return;
+  }
+
+  currentToken = {
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    expires_in: token.expires_in,
+    expires: new Date(new Date().getTime() + (token.expires_in * 1000))
+  };
+
+  saveTokenToLocalStorage(currentToken);
+  console.log('Tokens saved:', currentToken);
+  updateOAuthInfo();
+  scheduleTokenRefresh();
 }
 
 // On page load, try to fetch auth code from current browser search URL
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   const loginButton = document.getElementById('login-button');
   const refreshButton = document.getElementById('refresh-button');
   const logoutButton = document.getElementById('logout-button');
-  
+
   loginButton.addEventListener('click', loginWithSpotifyClick);
   refreshButton.addEventListener('click', refreshTokenClick);
   logoutButton.addEventListener('click', logoutClick);
-  
-  const args = new URLSearchParams(window.location.search);
-  const code = args.get('code');
 
-  // If we find a code, we're in a callback, do a token exchange
-  if (code) {
-    const token = await getToken(code);
-    currentToken.save(token);
+  // Load token from localStorage
+  const token = loadTokenFromLocalStorage();
+  console.log('Loaded token from localStorage:', token);
 
-    // Remove code from URL so we can refresh correctly
-    const url = new URL(window.location.href);
-    url.searchParams.delete("code");
-
-    const updatedUrl = url.search ? url.href : url.href.replace('?', '');
-    window.history.replaceState({}, document.title, updatedUrl);
-
-    console.log('Authorization successful, tokens saved.');
+  if (token) {
+    saveToken(token);
   } else {
-    console.log('No authorization code found, initiate login.');
+    const urlToken = parseTokenFromUrl();
+    console.log('Parsed token from URL:', urlToken);
+
+    // If we find a token in the URL, save it
+    if (urlToken.access_token && urlToken.refresh_token && urlToken.expires_in) {
+      saveToken(urlToken);
+
+      // Remove token from URL so it doesn't interfere with subsequent operations
+      window.location.hash = '';
+
+      console.log('Authorization successful, tokens saved.');
+    } else {
+      console.log('No authorization token found, checking for existing tokens.');
+    }
   }
 
   if (currentToken.access_token) {
     document.getElementById("song-container").style.display = 'flex';
+    document.getElementById("login-container").style.display = 'none';
     updateOAuthInfo();
-    scheduleTokenRefresh(); // Schedule the token refresh
+    scheduleTokenRefresh();
   } else {
     document.getElementById("login-container").style.display = 'flex';
+    document.getElementById("song-container").style.display = 'none';
   }
 });
 
-// Update the OAuth information on the page
 function updateOAuthInfo() {
   document.getElementById('access-token').innerText = currentToken.access_token || 'N/A';
   document.getElementById('refresh-token').innerText = currentToken.refresh_token || 'N/A';
   document.getElementById('expires').innerText = currentToken.expires ? new Date(currentToken.expires).toLocaleString() : 'N/A';
 }
 
-// Click handlers
-async function loginWithSpotifyClick() {
-  await redirectToSpotifyAuthorize();
+// Redirect user to Spotify's authorization page in a popup
+function redirectToSpotifyAuthorize() {
+  const authWindow = window.open(`${backendBaseUrl}/login`, 'Spotify Auth', 'width=600,height=800');
+
+  const pollTimer = window.setInterval(() => {
+    try {
+      if (authWindow.closed) {
+        window.clearInterval(pollTimer);
+        console.log('Authentication popup closed');
+        // Check if tokens are set after popup closes
+        if (currentToken.access_token) {
+          document.getElementById("song-container").style.display = 'flex';
+          document.getElementById("login-container").style.display = 'none';
+          updateOAuthInfo();
+        } else {
+          document.getElementById("login-container").style.display = 'flex';
+          document.getElementById("song-container").style.display = 'none';
+        }
+      }
+    } catch (e) {
+      console.error('Error during authentication popup handling:', e);
+    }
+  }, 1000);
+}
+
+function loginWithSpotifyClick() {
+  redirectToSpotifyAuthorize();
 }
 
 async function refreshTokenClick() {
   console.log('Attempting to refresh token...');
   try {
     const response = await refreshToken();
-    console.log('Refresh response:', response);
-    currentToken.save(response);
-    console.log('Token refreshed successfully.');
+    if (response) {
+      console.log('Refresh response:', response);
+      saveToken(response);
+      console.log('Token refreshed successfully.');
+    }
   } catch (error) {
     console.error('Error refreshing token:', error);
   }
 }
 
-async function logoutClick() {
-  currentToken.clear();
-  window.location.href = redirectUrl;
+function logoutClick() {
+  currentToken = {
+    access_token: null,
+    refresh_token: null,
+    expires_in: null,
+    expires: null
+  };
+  localStorage.clear();
+  console.log('Tokens cleared');
+  window.location.href = '/';
   console.log('Logged out successfully.');
 }
+
+// Function to receive message from popup
+window.addEventListener('message', (event) => {
+  if (event.origin !== backendBaseUrl) return; // Check the origin of the message
+  if (event.data.type === 'oauth') {
+    saveToken(event.data.token);
+    console.log('Received token from popup:', event.data.token);
+  }
+}, false);

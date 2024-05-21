@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Example of the Authorization Code with PKCE flow with Spotify</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="container">
+    <div id="login-container">
+      <h1>Welcome to the OAuth2 PKCE Example</h1>
+      <button id="login-button">Log in with Spotify</button>
+    </div>
+
+    <div id="oauth">
+      <h2>oAuth info</h2>
+      <table>
+        <tr>
+          <td>Access token</td>
+          <td id="access-token"></td>
+        </tr>
+        <tr>
+          <td>Refresh token</td>
+          <td id="refresh-token"></td>
+        </tr>
+        <tr>
+          <td>Expiration at</td>
+          <td id="expires"></td>
+        </tr>
+      </table>
+    </div>
+
+    <div id="song-container" style="display: none;">
+      <img id="album-art" src="icons/missing-song.png" alt="Album art"/>
+      <input type="range" id="song-slider" min="0" max="100" value="0">
+      <div id="song-time">
+        <p id="current-time">0:00</p>
+        <p id="duration">0:00</p>
+      </div>
+      <div id="info-and-like">
+        <div id="song-info">
+          <p id="song-name"></p>
+          <p id="artist-name"></p>
+        </div>
+        <button id="like-button">
+          <img id="like-button-icon" class="control-icon" src="icons/like-button.png" alt="Like"/>
+        </button>
+      </div>
+      <div id="controls-container">
+        <div id="song-controls">
+          <button id="shuffle-button" class="song-controls">
+            <img id="shuffle-button-icon" class="control-icon" src="icons/shuffle-button.png" alt="Shuffle"/>
+          </button>
+          <button id="previous-button" class="song-controls">
+            <img id="previous-button-icon" class="control-icon" src="icons/previous-button.png" alt="Previous"/>
+          </button>
+          <button id="play-button" class="song-controls">
+            <img id="play-button-icon" class="control-icon" src="icons/play-button.png" alt="Play"/>
+          </button>
+          <button id="next-button" class="song-controls">
+            <img id="next-button-icon" class="control-icon" src="icons/next-button.png" alt="Next"/>
+          </button>
+          <button id="repeat-button" class="song-controls">
+            <img id="repeat-button-icon" class="control-icon" src="icons/repeat-button.png" alt="Repeat"/>
+          </button>
+        </div>
+        <div id="volume-controls">
+          <button id="volume-button" class="song-controls">
+            <img id="volume-button-icon" class="control-icon" src="icons/volume-button.png" alt="Volume"/>
+          </button>
+          <input type="range" id="volume-slider" min="0" max="100" value="0">
+        </div>
+      </div>
+    </div>
+  </div>
+  <button id="refresh-button">Refresh Token</button>
+  <button id="logout-button">Log out</button>
+
+  <script src="token.js"></script>
+  <script src="auth.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>

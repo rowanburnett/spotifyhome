@@ -7,7 +7,7 @@ let currentToken = {
   expires: null
 };
 
-let refreshTimeoutId = null; // Variable to keep track of the current refresh timeout
+let refreshTimeoutId = null;
 
 // Parse token from URL fragment
 function parseTokenFromUrl() {

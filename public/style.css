@@ -15,8 +15,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.3);
-    background: center / cover no-repeat
+    /* background-color: rgba(0, 0, 0, 0.3); */
+    background: center / cover no-repeat;
+    opacity: 90%;
     width: 100%;
     height: 100vh;
     font-family: Arial, Helvetica, sans-serif;
@@ -27,31 +28,38 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
+    position: relative;
 }
 
 #song-time {
     width: 100%;
     display: flex;
     justify-content: space-between;
-    padding: 0.5em;
+    padding: 0.5rem;
     color: rgb(200, 200, 200);
-    font-size: 0.8em;
+    font-size: 0.8rem;
 }
 
 #song-info {
-    font-size: 0.8em;
-    width: 100%;
+    font-size: 0.8rem;
+    width: 80%;
     display: flex;
     flex-direction: column;
-    padding: 0.5em 0.5em 0 0.5em;
 }
 
-#like-button {
-    width: 1em;
-    height: 1em;
+.song-name-container,
+.artist-name-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#like-button, #menu-button {
+    width: 1rem;
+    height: 1rem;
     background-color: transparent;
     border: none;
-    cursor: pointer;
+    position: absolute;
+    right: 5%;
 }
 
 #info-and-like {
@@ -59,22 +67,24 @@
     justify-content: space-between;
     width: 90%;
     align-items: center;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
 }
 
 #artist-name {
     color: rgb(200, 200, 200);
-    padding-bottom: 0.5em;
 }
 
 #song-name {
     color: white;
-    padding-top: 0.5em;
 }
 
 #album-art {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    position: absolute;
+    background: center / cover no-repeat;
+    z-index: -1;
+    opacity: 70%;
 }
 
 #song-slider {
@@ -86,18 +96,17 @@
 
 .song-controls {
     border: none;
-    width: 1em;
-    height: 1em;
+    width: 1rem;
+    height: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: transparent;
-    cursor: pointer;
 }
 
 #play-button {
-    width: 2em;
-    height: 2em;
+    width: 2rem;
+    height: 2rem;
     border-radius: 50%;
     background-color: white;
 }
@@ -125,47 +134,46 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 0.5em;
+    padding: 0.5rem;
 }
 
 #song-controls {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 80%;
+    width: 45vw;
     max-width: 200px;
-    padding: 0.5em 0;
+    padding: 0.5rem 0;
 }
 
 #volume-controls {
-    width: 80%;
+    width: 45vw;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: 0.5em;
+    padding: 0.5rem;
     max-width: 200px;
 }
 
 input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    height: 0.3em;
-    cursor: pointer;
+    height: 0.2rem;
     outline: none;
     background-color: #ccc;
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 input[type="range"]::-webkit-slider-runnable-track,
 input[type="range"]::-moz-range-track {
-    border-radius: 1em;
+    border-radius: 1rem;
 }
 
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 0.7em;
-    width: 0.7em;
+    height: 0.6rem;
+    width: 0.6rem;
     background-color: #fff;
     border-radius: 50%;
     visibility: hidden;
@@ -176,8 +184,8 @@ input[type="range"]:hover::-webkit-slider-thumb {
 }
 
 input[type="range"]::-moz-range-thumb {
-    height: 0.7em;
-    width: 0.7em;
+    height: 0.7rem;
+    width: 0.7rem;
     background-color: #fff;
     border-radius: 50%;
     visibility: hidden;
@@ -188,10 +196,39 @@ input[type="range"]:hover::-moz-range-thumb {
 }
 
 #volume-slider {
-    border-radius: 1em;
+    border-radius: 1rem;
     width: 80%;
   }
 
-#refresh-button, #logout-button {
+  #menu-options {
     display: none;
-}
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    width: 20vw;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+    opacity: 80%;
+    border-radius: 0.25rem;
+    overflow: hidden;
+  }
+  
+  #menu-button:hover #menu-options,
+  #menu-options:hover {
+    display: block;
+  }
+  
+  #refresh-button,
+  #logout-button {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    color: white;
+    background-color: #121212;
+    border: none;
+    text-align: left;
+  }
+
+  #refresh-button:hover, #logout-button:hover {
+    background-color: #343434;
+  }

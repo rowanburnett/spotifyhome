@@ -16,6 +16,7 @@ const currentTime = document.getElementById("current-time");
 const duration = document.getElementById("duration");
 const likeButton = document.getElementById("like-button");
 const likeButtonIcon = document.getElementById("like-button-icon");
+const menuButton = document.getElementById("menu-button");
 
 let isSeeking = false;
 let isChangingVolume = false;
@@ -42,7 +43,7 @@ async function getPlayerData() {
     return await response.json();
   } catch (e) {
     console.log("Error fetching player data: ", e);
-    setTimeout(getPlayerData, 5000);
+    // setTimeout(getPlayerData, 5000);
   }
 }
 
@@ -90,7 +91,7 @@ async function updatePlayerData() {
     const newSong = playerData.item.name !== songName.innerHTML;
     if (newSong) {
         duration.innerHTML = formatTime(playerData.item.duration_ms);
-        albumArt.src = playerData.item.album.images[0].url;
+        albumArt.style.backgroundImage = `url(${playerData.item.album.images[0].url})`;
         songName.innerHTML = playerData.item.name;
         artistName.innerHTML = playerData.item.artists.map(artist => artist.name).join(", ");
         checkLiked(playerData.item.id);
@@ -103,14 +104,18 @@ async function updatePlayerData() {
 
     if (playerData.shuffle_state) {
       shuffleButton.classList.add("active");
+      shuffleButtonIcon.src = "icons/shuffle-button-active.png";
     } else {
       shuffleButton.classList.remove("active");
+      shuffleButtonIcon.src = "icons/shuffle-button.png";
     }
 
     if (playerData.repeat_state !== 'off') {
       repeatButtonIcon.classList.add("active");
+      repeatButtonIcon.src = "icons/repeat-button-active.png";
     } else {
       repeatButtonIcon.classList.remove("active");
+      repeatButtonIcon.src = "icons/repeat-button.png";
     }
   }
 

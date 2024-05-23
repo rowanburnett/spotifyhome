@@ -1,4 +1,4 @@
-const backendBaseUrl = 'http://192.168.1.177:8888';
+const backendBaseUrl = 'https://rowans.info';
 
 let currentToken = {
   access_token: null,
@@ -6,6 +6,8 @@ let currentToken = {
   expires_in: null,
   expires: null
 };
+
+let refreshTimeoutId = null; // Variable to keep track of the current refresh timeout
 
 // Parse token from URL fragment
 function parseTokenFromUrl() {
@@ -50,7 +52,7 @@ async function refreshToken() {
     return;
   }
 
-  const response = await fetch(`${backendBaseUrl}/refresh_token?refresh_token=${currentToken.refresh_token}`);
+  const response = await fetch(`${backendBaseUrl}/spotify/refresh_token?refresh_token=${currentToken.refresh_token}`);
   const data = await response.json();
   if (response.ok) {
     console.log('Token refreshed:', data);
@@ -72,7 +74,10 @@ function scheduleTokenRefresh() {
   const delay = expiryTime - now - 60000; // Refresh the token 1 minute before it expires
 
   if (delay > 0) {
-    setTimeout(async () => {
+    if (refreshTimeoutId) {
+      clearTimeout(refreshTimeoutId); // Clear any existing timeout
+    }
+    refreshTimeoutId = setTimeout(async () => {
       try {
         const response = await refreshToken();
         if (response) {
@@ -129,11 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlToken = parseTokenFromUrl();
     console.log('Parsed token from URL:', urlToken);
 
-    // If we find a token in the URL, save it
     if (urlToken.access_token && urlToken.refresh_token && urlToken.expires_in) {
       saveToken(urlToken);
 
-      // Remove token from URL so it doesn't interfere with subsequent operations
       window.location.hash = '';
 
       console.log('Authorization successful, tokens saved.');
@@ -161,7 +164,7 @@ function updateOAuthInfo() {
 
 // Redirect user to Spotify's authorization page in a popup
 function redirectToSpotifyAuthorize() {
-  const authWindow = window.open(`${backendBaseUrl}/login`, 'Spotify Auth', 'width=600,height=800');
+  const authWindow = window.open(`${backendBaseUrl}/spotify/login`, 'Spotify Auth', 'width=600,height=800');
 
   const pollTimer = window.setInterval(() => {
     try {

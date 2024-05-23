@@ -9,7 +9,7 @@ const path = require('path');
 
 const client_id = 'f82ac08f17c34c40a267ea3b4f772264'; // your clientId
 const client_secret = 'b173232cbff64a2b9e9a4d3c2781fe55'; // your clientSecret
-const redirect_uri = 'http://192.168.1.177:8888/callback'; // your redirect URI
+const redirect_uri = 'https://rowans.info/spotify/callback'; // your redirect URI
 
 const stateKey = 'spotify_auth_state';
 const codeVerifierFilePath = path.join(__dirname, 'code_verifier.txt');
@@ -114,6 +114,7 @@ app.get('/callback', (req, res) => {
 });
 
 app.get('/refresh_token', (req, res) => {
+  console.log('refresh')
   const refresh_token = req.query.refresh_token;
   const authOptions = {
     url: 'https://accounts.spotify.com/api/token',
@@ -129,10 +130,22 @@ app.get('/refresh_token', (req, res) => {
   };
 
   request.post(authOptions, (error, response, body) => {
+    // console.log(body);
     if (!error && response.statusCode === 200) {
       const access_token = body.access_token;
+      const refresh_token = body.refresh_token;
+      const expires_in = body.expires_in;
+
+      const token = {
+        access_token,
+        refresh_token,
+        expires_in
+      };
+      
       res.send({
-        'access_token': access_token
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'expires_in': expires_in
       });
     } else {
       res.status(response.statusCode).send({
